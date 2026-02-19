@@ -38,7 +38,6 @@
     --title-size: 15px;
     --title-margin: 4px;
     --slot-title-color: var(--text);
-
     /* Dropdown menu universal variables */
     --dropdown-padding: 12px;
     --dropdown-background: #171717;
@@ -6036,4 +6035,150 @@ body.light-mode .notice-filter-tab {
 
 body.light-mode .notice-mark-all-read {
     background: #f5f5f5;
+}
+
+/* Bus Lottie Animation Container */
+#busLottie {
+    width: 100%;
+    max-width: 220px;
+    height: 220px;
+    margin: 0 auto;
+    display: none;
+}
+
+#busLottie.showing {
+    display: block;
+    animation: fadeIn 0.5s ease;
+}
+
+#bus .bottom-spacer {
+    height: 10px;
+}
+
+#bus.screen {
+    padding-bottom: 25px;
+}
+
+/* User Request: Make Designation and Department value white in teacher popup */
+#teacherContactDesignation,
+#teacherContactDepartment {
+    color: white !important;
+}
+
+/* App Preloader Styles - Clean Minimalist Dark Theme */
+.app-preloader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    background: #121212;
+    /* Matches var(--bg) */
+    z-index: 999999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    transition: opacity 0.5s ease, visibility 0.5s step-end;
+}
+
+.app-preloader.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.app-preloader-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    z-index: 10;
+}
+
+/* Modern Bouncing Dots Loader */
+.loader-dots {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.loader-dots span {
+    width: 16px;
+    height: 16px;
+    background: #6c63ff;
+    /* Primary Color */
+    border-radius: 50%;
+    animation: bounce 1.4s infinite ease-in-out both;
+    box-shadow: 0 0 10px rgba(108, 99, 255, 0.4);
+}
+
+.loader-dots span:nth-child(1) {
+    animation-delay: -0.32s;
+}
+
+.loader-dots span:nth-child(2) {
+    animation-delay: -0.16s;
+}
+
+@keyframes bounce {
+
+    0%,
+    80%,
+    100% {
+        transform: scale(0);
+        opacity: 0.5;
+    }
+
+    40% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Typography */
+.preloader-title {
+    font-family: 'Poppins', sans-serif;
+    font-size: 20px;
+    font-weight: 600;
+    color: #e0e0e0;
+    margin: 0;
+    letter-spacing: 0.5px;
+}
+
+.preloader-subtitle {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: #b3b3b3;
+    margin-top: -8px;
+    font-weight: 400;
+}
+
+/* Minimalist Progress Bar */
+.loading-progress-wrapper {
+    width: 160px;
+    height: 4px;
+    background: #2a2a2a;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 12px;
+    position: relative;
+}
+
+.loading-progress-bar {
+    height: 100%;
+    width: 0%;
+    background: #6c63ff;
+    border-radius: 4px;
+    transition: width 0.2s ease-out;
+    box-shadow: 0 0 8px rgba(108, 99, 255, 0.4);
+}
+
+.loading-percent-text {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    color: #6c63ff;
+    font-weight: 600;
+    margin-top: 6px;
+    opacity: 0.9;
 }

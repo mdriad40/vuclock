@@ -76,7 +76,8 @@
       support: document.getElementById('support'),
       information: document.getElementById('information'),
       todo: document.getElementById('todo'),
-      schedio: document.getElementById('schedio')
+      schedio: document.getElementById('schedio'),
+      bus: document.getElementById('bus')
     },
     landingOverlay: document.getElementById('landingOverlay'),
     // Query screen elements
@@ -148,6 +149,16 @@
     teacherContactDepartment: document.getElementById('teacherContactDepartment'),
     // Student loading overlay
     appRoot: document.getElementById('app'),
+    // Bus Elements
+    busOption: document.getElementById('busOption'),
+    busBackBtn: document.getElementById('busBackBtn'),
+    busSearchFrom: document.getElementById('busSearchFrom'),
+    busFromSuggestions: document.getElementById('busFromSuggestions'),
+    busSearchTo: document.getElementById('busSearchTo'),
+    busToSuggestions: document.getElementById('busToSuggestions'),
+    busSwapBtn: document.getElementById('busSwapBtn'),
+    busSearchBtn: document.getElementById('busSearchBtn'),
+    busResults: document.getElementById('busResults'),
     studentLoadingOverlay: document.getElementById('studentLoadingOverlay'),
     // Auth elements
     authView: document.getElementById('authView'),
@@ -177,7 +188,10 @@
     bookingTab: document.getElementById('bookingTab'),
     historyTab: document.getElementById('historyTab'),
     bookingInterface: document.getElementById('bookingInterface'),
-    historyInterface: document.getElementById('historyInterface')
+    historyInterface: document.getElementById('historyInterface'),
+    // Bus Announcement
+    busAnnouncement: document.getElementById('busAnnouncement'),
+    busAnnouncementMessage: document.getElementById('busAnnouncementMessage')
   };
 
   function enableRipple(node) {
@@ -696,7 +710,7 @@
     // Update active tab state
     els.tabs.forEach(btn => {
       // Check data-tab attribute match
-      const isMore = (['more', 'booking', 'notice', 'privacy', 'support', 'information', 'todo', 'schedio'].includes(name) && (btn.dataset.tab === 'more' || btn.dataset.tab === 'empty'));
+      const isMore = (['more', 'booking', 'notice', 'privacy', 'support', 'information', 'todo', 'schedio', 'bus', 'labScreen'].includes(name) && (btn.dataset.tab === 'more' || btn.dataset.tab === 'empty'));
       const isMatch = btn.dataset.tab === name;
       btn.classList.toggle('active', isMatch || isMore);
     });
@@ -747,6 +761,132 @@
   }
 
   window.setScreen = setScreen;
+
+  // ==========================================
+  // LAB RAT SCREEN LOGIC (IFRAME)
+  // ==========================================
+
+  // Register labScreen dynamically to ensure it gets hidden when switching screens
+  if (!els.screens.labScreen) {
+    els.screens.labScreen = document.getElementById('labScreen');
+  }
+
+  function openLabRat() {
+    // 1. Show Preloader immediately
+    const preloader = document.getElementById('appPreloader');
+    const progressBar = document.getElementById('loadingProgressBar');
+    const percentText = document.getElementById('loadingPercentText');
+
+    if (preloader) {
+      preloader.classList.remove('hidden');
+
+      // Reset animation state
+      if (progressBar) progressBar.style.width = '0%';
+      if (percentText) percentText.textContent = '0%';
+
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += Math.floor(Math.random() * 5) + 1;
+        if (progress > 90) progress = 90; // Hold at 90% until done
+
+        if (progressBar) progressBar.style.width = `${progress}%`;
+        if (percentText) percentText.textContent = `${progress}%`;
+      }, 40);
+
+      // 2. Prepare Lab Screen
+      if (!els.screens.labScreen) {
+        els.screens.labScreen = document.getElementById('labScreen');
+      }
+
+      const labFrame = document.getElementById('labFrame');
+      let isFirstLoad = false;
+
+      if (labFrame && !labFrame.getAttribute('src')) {
+        isFirstLoad = true;
+        labFrame.src = 'labrat.html';
+      }
+
+      // 3. Define completion logic
+      const completeLoading = () => {
+        clearInterval(interval);
+        if (progressBar) progressBar.style.width = '100%';
+        if (percentText) percentText.textContent = '100%';
+
+        setTimeout(() => {
+          setScreen('labScreen');
+          window.history.pushState({ screen: 'labScreen' }, 'Lab Rat', '#lab');
+
+          // Hide preloader
+          preloader.classList.add('hidden');
+        }, 500);
+      };
+
+      // 4. Handle timing
+      if (isFirstLoad && labFrame) {
+        // If first load, wait for onload event but with min/max time limits
+        let loaded = false;
+
+        labFrame.onload = () => {
+          if (!loaded) {
+            loaded = true;
+            // Add a small delay for visual smoothness even if fast
+            setTimeout(completeLoading, 800);
+          }
+        };
+
+        // Max wait 5s to avoid getting stuck
+        setTimeout(() => {
+          if (!loaded) {
+            loaded = true;
+            completeLoading();
+          }
+        }, 5000);
+      } else {
+        // If already loaded, just show cosmetic delay (1.2s)
+        setTimeout(completeLoading, 1200);
+      }
+
+    } else {
+      // Fallback (no preloader element found)
+      if (!els.screens.labScreen) {
+        els.screens.labScreen = document.getElementById('labScreen');
+      }
+
+      const labFrame = document.getElementById('labFrame');
+      if (labFrame && !labFrame.getAttribute('src')) {
+        labFrame.src = 'labrat.html';
+      }
+      setScreen('labScreen');
+      window.history.pushState({ screen: 'labScreen' }, 'Lab Rat', '#lab');
+    }
+  }
+
+  function closeLabRat() {
+    // If we have history, go back (triggering popstate)
+    if (window.history.state && window.history.state.screen === 'labScreen') {
+      window.history.back();
+    } else {
+      // Fallback if opened directly
+      setScreen('more');
+    }
+  }
+
+  // Expose to global scope for onclick usage
+  window.openLabRat = openLabRat;
+  window.closeLabRat = closeLabRat;
+
+  // Handle Browser Back Button
+  window.addEventListener('popstate', (event) => {
+    // If we are navigating back from Lab Screen
+    const labScreen = document.getElementById('labScreen');
+    if (labScreen && !labScreen.classList.contains('hidden')) {
+      // We are currently on Lab Screen, and popstate happened (Back button pressed)
+      if (!event.state || event.state.screen !== 'labScreen') {
+        // Revert to 'more' screen (or default)
+        setScreen('more');
+      }
+    }
+  });
 
   // ==========================================
   // SCHEDIO FEATURE IMPLEMENTATION
@@ -817,6 +957,29 @@
 
     // Init Date/Time Pickers
     initSchedioDateAndTimePickers();
+
+    // Init Overview Modal Elements & Listeners (moved from render loop)
+    initSchedioOverviewLogic();
+  }
+
+  function initSchedioOverviewLogic() {
+    els.schedioOverviewModal = document.getElementById('schedioOverviewModal');
+    els.overviewCloseBtn = document.getElementById('overviewCloseBtn');
+    els.overviewDate = document.getElementById('overviewDate');
+    els.overviewTag = document.getElementById('overviewTag');
+    els.overviewSubject = document.getElementById('overviewSubject');
+    els.overviewTime = document.getElementById('overviewTime');
+    els.overviewRoom = document.getElementById('overviewRoom');
+    els.overviewNote = document.getElementById('overviewNote');
+    els.overviewActions = document.getElementById('overviewActions');
+    els.overviewEditBtn = document.getElementById('overviewEditBtn');
+    els.overviewDeleteBtn = document.getElementById('overviewDeleteBtn');
+
+    if (els.overviewCloseBtn) {
+      els.overviewCloseBtn.onclick = () => {
+        closeSchedioOverview();
+      };
+    }
   }
 
   function initSchedioDateAndTimePickers() {
@@ -1310,9 +1473,10 @@
         schedioRef = db.ref(`schedio/${dept}/${sem}/${sec}`).orderByChild('date');
 
         // Show empty state instantly if container is empty (fix delayed appearance)
-        if (els.schedioContainer && els.schedioContainer.children.length === 0) {
-          if (els.schedioEmptyState) els.schedioEmptyState.style.display = 'flex';
-        }
+        // REMOVED to prevent flash of empty state which looks like double loading
+        // if (els.schedioContainer && els.schedioContainer.children.length === 0) {
+        //   if (els.schedioEmptyState) els.schedioEmptyState.style.display = 'flex';
+        // }
 
         schedioRef.on('value', snapshot => {
           const data = snapshot.val();
@@ -1334,128 +1498,7 @@
     });
   }
 
-  function renderSchedioItems(items) {
-    if (!els.schedioContainer) return;
-    els.schedioContainer.innerHTML = '';
 
-    // Add Schedio elements to els
-    els.schedioBackBtn = document.getElementById('schedioBackBtn');
-    els.schedioAddBtn = document.getElementById('schedioAddBtn');
-    els.schedioContainer = document.getElementById('schedioContainer');
-    els.schedioEmptyState = document.getElementById('schedioEmptyState');
-    els.schedioEmptyLottie = document.getElementById('schedioEmptyLottie');
-    els.schedioAddModal = document.getElementById('schedioAddModal');
-    els.schedioAddClose = document.getElementById('schedioAddClose');
-    els.schedioAddForm = document.getElementById('schedioAddForm');
-    els.schedioType = document.getElementById('schedioType');
-    els.schedioMenuOption = document.getElementById('schedioMenuOption');
-
-    // Overview Elements
-    els.schedioOverviewModal = document.getElementById('schedioOverviewModal');
-    els.overviewCloseBtn = document.getElementById('overviewCloseBtn');
-    els.overviewDate = document.getElementById('overviewDate');
-    els.overviewTag = document.getElementById('overviewTag');
-    els.overviewSubject = document.getElementById('overviewSubject');
-    els.overviewTime = document.getElementById('overviewTime');
-    els.overviewRoom = document.getElementById('overviewRoom');
-    els.overviewNote = document.getElementById('overviewNote');
-    els.overviewActions = document.getElementById('overviewActions');
-    els.overviewEditBtn = document.getElementById('overviewEditBtn');
-    els.overviewDeleteBtn = document.getElementById('overviewDeleteBtn');
-
-    // Back Button
-    if (els.schedioBackBtn) {
-      els.schedioBackBtn.onclick = () => setScreen('more');
-    }
-
-    // Menu Option Click
-    if (els.schedioMenuOption) {
-      els.schedioMenuOption.onclick = () => {
-        setScreen('schedio');
-        loadSchedioData();
-      };
-    }
-
-    // Add Button Click
-    if (els.schedioAddBtn) {
-      els.schedioAddBtn.onclick = () => {
-        resetSchedioForm();
-        if (els.schedioAddModal) {
-          els.schedioAddModal.classList.remove('hidden');
-          setTimeout(() => els.schedioAddModal.classList.add('showing'), 10);
-        }
-      };
-    }
-
-    // Close Modal
-    if (els.schedioAddClose) {
-      els.schedioAddClose.onclick = () => {
-        closeSchedioModal();
-      };
-    }
-
-    // Overview Close
-    if (els.overviewCloseBtn) {
-      els.overviewCloseBtn.onclick = () => {
-        closeSchedioOverview();
-      };
-    }
-
-    // Form Submit
-    if (els.schedioAddForm) {
-      els.schedioAddForm.onsubmit = handleSchedioSubmit;
-    }
-
-    // Init Dropdown logic
-    const typeDropdown = document.getElementById('schedioTypeDropdown');
-    if (typeDropdown) setupSchedioDropdown(typeDropdown, 'schedioType');
-
-    // Init Date/Time Pickers
-    initSchedioDateAndTimePickers();
-  }
-
-  function resetSchedioForm() {
-    if (els.schedioAddForm) els.schedioAddForm.reset();
-    const typeBtn = document.getElementById('schedioTypeBtn');
-    if (typeBtn) typeBtn.textContent = 'Select Type';
-    const dateInput = document.getElementById('schedioDate');
-    if (dateInput) { dateInput.value = ''; delete dateInput.dataset.iso; }
-    const editIdInput = document.getElementById('schedioEditId');
-    if (editIdInput) editIdInput.value = '';
-  }
-
-  function closeSchedioModal() {
-    if (els.schedioAddModal) {
-      els.schedioAddModal.classList.remove('showing');
-      setTimeout(() => els.schedioAddModal.classList.add('hidden'), 200);
-    }
-  }
-
-  function closeSchedioOverview() {
-    if (els.schedioOverviewModal) {
-      els.schedioOverviewModal.classList.remove('showing');
-      setTimeout(() => els.schedioOverviewModal.classList.add('hidden'), 200); // Wait for transition
-    }
-  }
-
-  // ... (setupSchedioDropdown, initSchedioDateAndTimePickers kept as is, assumed defined outside range or below) ...
-  // Note: Since I am replacing initSchedioLogic which was at the top of the viewed range, 
-  // I must be careful not to delete referenced functions if they were inside.
-  // The viewed range started at 1150 (renderSchedioItems). initSchedioLogic was earlier.
-  // Wait, I am replacing renderSchedioItems and handleSchedioSubmit.
-  // Need to verify where initSchedioLogic was. It was at 722. 
-  // I should only replace renderSchedioItems and handleSchedioSubmit here.
-  // I will inject the element selection inside initSchedioLogic via another replace call if needed, 
-  // OR I can just look up elements dynamically. Global `els` object is convenient.
-
-  // To be safe and minimal, I will stick to modifying renderSchedioItems and handleSchedioSubmit 
-  // and adding helper functions. I won't rewrite initSchedioLogic in this block since it's far above.
-  // I will grab elements lazily or assume they are available if I add getters.
-
-  // Actually, I can just reimplement initSchedioLogic if I view it again? 
-  // No, let's just add the listeners in a new init function or check lazily.
-  // BUT the user interaction flow requires buttons to work.
-  // I will add a helper `initSchedioOverviewListeners` and call it.
 
   function renderSchedioItems(items) {
     if (!els.schedioContainer) return;
@@ -1688,6 +1731,30 @@
       // User said "count down", usually implies ticking. Let's do 1s for better UX, or 30s?
       // 1s is fine for performance if list isn't huge.
       window.schedioInterval = setInterval(updateSchedioCountdowns, 1000);
+    }
+  }
+
+  function resetSchedioForm() {
+    if (els.schedioAddForm) els.schedioAddForm.reset();
+    const typeBtn = document.getElementById('schedioTypeBtn');
+    if (typeBtn) typeBtn.textContent = 'Select Type';
+    const dateInput = document.getElementById('schedioDate');
+    if (dateInput) { dateInput.value = ''; delete dateInput.dataset.iso; }
+    const editIdInput = document.getElementById('schedioEditId');
+    if (editIdInput) editIdInput.value = '';
+  }
+
+  function closeSchedioModal() {
+    if (els.schedioAddModal) {
+      els.schedioAddModal.classList.remove('showing');
+      setTimeout(() => els.schedioAddModal.classList.add('hidden'), 200);
+    }
+  }
+
+  function closeSchedioOverview() {
+    if (els.schedioOverviewModal) {
+      els.schedioOverviewModal.classList.remove('showing');
+      setTimeout(() => els.schedioOverviewModal.classList.add('hidden'), 200);
     }
   }
 
@@ -2338,6 +2405,26 @@
   }
 
   // Update tab icons based on active page
+  // Preload tab icons to eliminate delay on first switch
+  function preloadTabIcons() {
+    const icons = [
+      'attachment/student.png',
+      'attachment/id-card.png',
+      'attachment/history.png',
+      'attachment/application.png',
+      'attachment/student (1).png',
+      'attachment/id-card (1).png',
+      'attachment/history (1).png',
+      'attachment/application (1).png'
+    ];
+    icons.forEach(src => {
+      const img = new Image();
+      img.src = src;
+    });
+  }
+  preloadTabIcons(); // Start preloading immediately
+
+
   function updateTabIcons(activeTab) {
     const studentIcon = document.getElementById('student-icon');
     const teacherIcon = document.getElementById('teacher-icon');
@@ -2345,7 +2432,7 @@
     const moreIcon = document.getElementById('more-icon');
 
     if (!studentIcon || !teacherIcon || !queryIcon || !moreIcon) return;
-
+    //More Page Icon Active State
     // Reset all icons to inactive state
     if (activeTab === 'student') {
       studentIcon.src = 'attachment/student.png';
@@ -2362,7 +2449,7 @@
       teacherIcon.src = 'attachment/id-card (1).png';
       queryIcon.src = 'attachment/history.png';
       moreIcon.src = 'attachment/application (1).png';
-    } else if (activeTab === 'more' || activeTab === 'empty' || activeTab === 'booking' || activeTab === 'privacy' || activeTab === 'support' || activeTab === 'information' || activeTab === 'todo' || activeTab === 'schedio') {
+    } else if (activeTab === 'more' || activeTab === 'empty' || activeTab === 'booking' || activeTab === 'privacy' || activeTab === 'support' || activeTab === 'information' || activeTab === 'todo' || activeTab === 'schedio' || activeTab === 'bus' || activeTab === 'notice' || activeTab === 'labScreen') {
       studentIcon.src = 'attachment/student (1).png';
       teacherIcon.src = 'attachment/id-card (1).png';
       queryIcon.src = 'attachment/history (1).png';
@@ -2723,10 +2810,28 @@
       }
       let tab = btn.dataset.tab;
       // Handle legacy 'empty' as 'more'
-      if (tab === 'empty') tab = 'more';
-      setScreen(tab);
-      // Teacher data is already preloaded on page load, just show the UI
-      // No need to reload when switching tabs
+      if (tab === 'empty') {
+        tab = 'more';
+      }
+
+      // --- OPTIMIZATION START ---
+      // 1. Immediate Visual Feedback (Native-like response)
+      // Remove active class from all tabs
+      els.tabs.forEach(t => t.classList.remove('active'));
+      // Add active class to clicked tab
+      btn.classList.add('active');
+
+      // Update icons instantly
+      updateTabIcons(tab);
+      // --- OPTIMIZATION END ---
+
+      // 2. Defer heavy logic slightly to let browser paint the icon change
+      // Use requestAnimationFrame for smoother Visual Update
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          setScreen(tab);
+        }, 0);
+      });
     });
   });
 
@@ -4483,9 +4588,8 @@
       item.innerHTML = `
         <div class="autocomplete-item-name">${fullName} (${shortForm})</div>
       `;
-      // Use mousedown instead of click for better trackpad support
+      // Use standard click for selection, mousedown for preventing blur
       const handleSelect = (e) => {
-        e.preventDefault();
         e.stopPropagation();
         els.teacherSearch.value = shortForm;
         hideDropdown(els.teacherSuggestions);
@@ -4511,8 +4615,12 @@
           loadTeacherRoutine(shortForm, dept);
         }
       };
-      item.addEventListener('mousedown', handleSelect);
-      item.addEventListener('touchstart', handleSelect);
+
+      // Prevent input blur when clicking item scrollbar or item itself
+      item.addEventListener('mousedown', (e) => e.preventDefault());
+
+      // Select only on full click
+      item.addEventListener('click', handleSelect);
       els.teacherSuggestions.appendChild(item);
     });
     showDropdown(els.teacherSuggestions);
@@ -5625,11 +5733,10 @@
 
     data.forEach(item => {
       const block = document.createElement('div');
-      block.className = 'room-query-free-slot-block class-card clickable-slot'; // Added clickable classes
-      block.style.cssText = 'padding: 14px; background: rgba(158, 140, 255, 0.1); border: 1px solid var(--outline); border-radius: 12px; width: 100%; cursor: pointer; position: relative;';
+      block.className = 'room-query-free-slot-block class-card'; // Removed clickable-slot
+      block.style.cssText = 'padding: 14px; background: rgba(158, 140, 255, 0.1); border: 1px solid var(--outline); border-radius: 12px; width: 100%; position: relative;'; // Removed cursor: pointer
 
-      // Add ripple effect
-      enableRipple(block);
+      // Removed enableRipple(block);
 
       const title = document.createElement('div');
       title.className = 'room-query-free-slot-title';
@@ -5644,12 +5751,7 @@
       block.appendChild(title);
       block.appendChild(subtitle);
 
-      // Click handler for booking
-      block.addEventListener('click', (e) => {
-        if (window.handleSlotClick) {
-          window.handleSlotClick(item.room, item.timeSlot);
-        }
-      });
+      // Removed click listener
 
       container.appendChild(block);
     });
@@ -6200,8 +6302,8 @@
     function renderStudentFields() {
       if (!authEls.signupFields) return;
       authEls.signupFields.innerHTML = `
-            <div class="field"><span>Full Name</span><input type="text" id="s_name" class="auth-input" required placeholder="Enter your name" spellcheck="false"></div>
-            <div class="field"><span>Student ID</span><input type="text" id="s_id" class="auth-input" required placeholder="Enter your id" inputmode="numeric" pattern="[0-9]*" spellcheck="false"></div>
+            <div class="field"><span>Full Name</span><input type="text" id="s_name" class="auth-input" required placeholder="Enter your name" spellcheck="false" autocomplete="name"></div>
+            <div class="field"><span>Student ID</span><input type="tel" id="s_id" class="auth-input" required placeholder="Enter your id" pattern="[0-9]*" spellcheck="false" autocomplete="off" name="no_autofill_student_id" readonly onfocus="this.removeAttribute('readonly');" style="cursor: text;"></div>
             
             <label class="field control">
                 <span>Department</span>
@@ -6237,10 +6339,10 @@
                         <img src="https://flagcdn.com/w40/bd.png" alt="BD" class="flag-icon">
                         <span>+88</span>
                     </div>
-                    <input type="tel" id="s_phone" class="auth-input phone-input-field" required placeholder="01XXXXXXXXX" maxlength="11" oninput="this.value = this.value.replace(/[^0-9]/g, '')" spellcheck="false">
+                    <input type="tel" id="s_phone" class="auth-input phone-input-field" required placeholder="01XXXXXXXXX" maxlength="11" oninput="this.value = this.value.replace(/[^0-9]/g, '')" spellcheck="false" autocomplete="tel">
                 </div>
             </div>
-            <div class="field"><span>Email</span><input type="email" id="s_email" class="auth-input" required placeholder="Enter your email" spellcheck="false"></div>
+            <div class="field"><span>Email</span><input type="email" id="s_email" class="auth-input" required placeholder="Enter your email" spellcheck="false" autocomplete="off" name="no_autofill_student_email" readonly onfocus="this.removeAttribute('readonly');" style="cursor: text;"></div>
         `;
 
       const s_dept = document.getElementById('s_dept');
@@ -6300,7 +6402,7 @@
       authEls.signupFields.innerHTML = `
             <div class="field"><span>Full Name</span><input type="text" id="t_name" class="auth-input" required placeholder="Enter your name" spellcheck="false"></div>
             <div class="field"><span>Mobile</span><input type="tel" id="t_phone" class="auth-input" required placeholder="Enter your phone number" spellcheck="false"></div>
-            <div class="field"><span>Email</span><input type="email" id="t_email" class="auth-input" required placeholder="Enter your email" spellcheck="false"></div>
+            <div class="field"><span>Email</span><input type="email" id="t_email" class="auth-input" required placeholder="Enter your email" spellcheck="false" autocomplete="off" name="no_autofill_teacher_email" readonly onfocus="this.removeAttribute('readonly');" style="cursor: text;"></div>
         `;
     }
 
@@ -8738,6 +8840,9 @@ if (document.readyState === 'loading') {
 // ========================================
 
 (function () {
+  // Database reference for this scope
+  const db = window.firebase ? window.firebase.database() : null;
+
   // Notice state
   let allNotices = [];
   let userReadNotices = new Set();
@@ -9152,10 +9257,548 @@ if (document.readyState === 'loading') {
     return div.innerHTML;
   }
 
+  // ========== BUS LOGIC ==========
+
+  const busEls = {
+    busOption: document.getElementById('busOption'),
+    busBackBtn: document.getElementById('busBackBtn'),
+    busSearchFrom: document.getElementById('busSearchFrom'),
+    busFromSuggestions: document.getElementById('busFromSuggestions'),
+    busSearchTo: document.getElementById('busSearchTo'),
+    busToSuggestions: document.getElementById('busToSuggestions'),
+    busSwapBtn: document.getElementById('busSwapBtn'),
+    busSearchBtn: document.getElementById('busSearchBtn'),
+    busResults: document.getElementById('busResults'),
+    busLottie: document.getElementById('busLottie')
+  };
+
+  let busLottieInstance = null;
+
+  function initBusLottie() {
+    if (!busEls.busLottie || !window.lottie || busLottieInstance) return;
+
+    // Show by default
+    busEls.busLottie.classList.add('showing');
+
+    try {
+      const config = {
+        container: busEls.busLottie,
+        renderer: 'svg',
+        loop: true,
+        autoplay: true
+      };
+
+      if (window.__busAnimationData) {
+        config.animationData = window.__busAnimationData;
+      } else {
+        config.path = 'animation_file/Bus_carga.json';
+      }
+
+      busLottieInstance = window.lottie.loadAnimation(config);
+    } catch (e) {
+      console.error("Bus Lottie Error:", e);
+    }
+  }
+
+  function resetBusView() {
+    if (busEls.busResults) busEls.busResults.innerHTML = '';
+    if (busEls.busLottie) {
+      busEls.busLottie.classList.add('showing');
+      if (busLottieInstance) busLottieInstance.play();
+    }
+  }
+
+  function initBus() {
+    window.handleBusClick = function () {
+      if (window.setScreen) window.setScreen('bus');
+      loadBusStopsForAutocomplete();
+    };
+
+    if (busEls.busOption) {
+      busEls.busOption.addEventListener('click', () => {
+        if (window.setScreen) window.setScreen('bus');
+        loadBusStopsForAutocomplete();
+        resetBusView();
+      });
+    }
+    if (busEls.busBackBtn) {
+      busEls.busBackBtn.addEventListener('click', () => {
+        if (window.setScreen) window.setScreen('more');
+      });
+    }
+
+    // Autocomplete listeners
+    if (busEls.busSearchFrom) setupBusAutocomplete(busEls.busSearchFrom, busEls.busFromSuggestions);
+    if (busEls.busSearchTo) setupBusAutocomplete(busEls.busSearchTo, busEls.busToSuggestions);
+
+    // Swap
+    if (busEls.busSwapBtn) {
+      busEls.busSwapBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (busEls.busSearchFrom && busEls.busSearchTo) {
+          const temp = busEls.busSearchFrom.value;
+          busEls.busSearchFrom.value = busEls.busSearchTo.value;
+          busEls.busSearchTo.value = temp;
+        }
+      });
+    }
+
+    // Search
+    if (busEls.busSearchBtn) {
+      busEls.busSearchBtn.addEventListener('click', searchBuses);
+    }
+  }
+
+  function showBusDropdown(el) {
+    if (el) {
+      el.classList.remove('hidden');
+      setTimeout(() => el.classList.add('showing'), 10);
+    }
+  }
+
+  function hideBusDropdown(el) {
+    if (el) {
+      el.classList.remove('showing');
+      setTimeout(() => el.classList.add('hidden'), 200);
+    }
+  }
+
+  let allBusStops = new Set();
+  let cachedBuses = null;
+
+  function loadBusStopsForAutocomplete() {
+    // Fetch buses if not cached
+    if (!cachedBuses && db) {
+      db.ref('transport/buses').once('value', (snap) => {
+        cachedBuses = snap.val() || {};
+        extractStops(cachedBuses);
+      });
+    }
+  }
+
+  function extractStops(buses) {
+    allBusStops.clear();
+    Object.values(buses).forEach(bus => {
+      // Handle Firebase array-to-object conversion
+      const route = bus.route ? (Array.isArray(bus.route) ? bus.route : Object.values(bus.route)) : [];
+
+      route.forEach(stop => {
+        if (stop && stop.name) allBusStops.add(stop.name);
+      });
+    });
+  }
+
+  function setupBusAutocomplete(input, dropdown) {
+    const handleInput = (val) => {
+      val = val.toLowerCase();
+      if (!val) {
+        hideBusDropdown(dropdown);
+        return;
+      }
+
+      if (allBusStops.size === 0) loadBusStopsForAutocomplete();
+
+      // Get the value from the opposite input to exclude it
+      let excludeStation = '';
+      if (input === busEls.busSearchFrom && busEls.busSearchTo) {
+        excludeStation = busEls.busSearchTo.value.toLowerCase().trim();
+      } else if (input === busEls.busSearchTo && busEls.busSearchFrom) {
+        excludeStation = busEls.busSearchFrom.value.toLowerCase().trim();
+      }
+
+      const matches = Array.from(allBusStops).filter(s => {
+        const sLower = s.toLowerCase();
+        return sLower.includes(val) && sLower !== excludeStation;
+      });
+
+      if (matches.length === 0) {
+        hideBusDropdown(dropdown);
+        return;
+      }
+
+      dropdown.innerHTML = '';
+      matches.forEach(stopName => {
+        const div = document.createElement('div');
+        div.className = 'autocomplete-item';
+        div.innerHTML = `
+          <div class="autocomplete-item-name">${escapeHtml(stopName)}</div>
+        `;
+        // Use mousedown instead of click to fire before blur
+        div.onmousedown = (e) => {
+          e.preventDefault(); // Prevent input blur
+          input.value = stopName;
+          hideBusDropdown(dropdown);
+        };
+        dropdown.appendChild(div);
+      });
+      showBusDropdown(dropdown);
+    };
+
+    input.addEventListener('input', (e) => handleInput(e.target.value.trim()));
+    input.addEventListener('focus', (e) => {
+      if (e.target.value.trim()) handleInput(e.target.value.trim());
+    });
+
+    input.addEventListener('blur', () => {
+      hideBusDropdown(dropdown);
+    });
+  }
+
+  function searchBuses() {
+    const fromStop = busEls.busSearchFrom.value.trim();
+    const toStop = busEls.busSearchTo.value.trim();
+
+    if (!fromStop || !toStop) {
+      alert("Please select both From and To stations.");
+      return;
+    }
+
+    if (fromStop.toLowerCase() === toStop.toLowerCase()) {
+      alert("From and To stations cannot be the same. Please select different stations.");
+      return;
+    }
+
+    if (!db) return;
+
+    if (!cachedBuses) {
+      // Retry fetch
+      db.ref('transport/buses').once('value', (snap) => {
+        cachedBuses = snap.val() || {};
+        performBusSearch(fromStop, toStop);
+      });
+    } else {
+      performBusSearch(fromStop, toStop);
+    }
+  }
+
+  function performBusSearch(from, to) {
+    if (!busEls.busResults) return;
+
+    // Hide Lottie
+    if (busEls.busLottie) {
+      busEls.busLottie.classList.remove('showing');
+      if (busLottieInstance) busLottieInstance.stop();
+    }
+
+    busEls.busResults.innerHTML = '';
+    const results = [];
+    const fromLower = from.toLowerCase();
+    const toLower = to.toLowerCase();
+
+    Object.values(cachedBuses).forEach(bus => {
+      if (!bus.route) return;
+
+      // Normalize route (handle array or object)
+      const route = Array.isArray(bus.route) ? bus.route : Object.values(bus.route);
+
+      let fromIndex = -1;
+      let toIndex = -1;
+
+      // Find indices
+      route.forEach((stop, idx) => {
+        if (stop && stop.name && stop.name.toLowerCase() === fromLower) fromIndex = idx;
+        if (stop && stop.name && stop.name.toLowerCase() === toLower) toIndex = idx;
+      });
+
+      // Check if valid direction (from comes before to)
+      if (fromIndex !== -1 && toIndex !== -1 && fromIndex < toIndex) {
+        // Calculate details
+        const fromData = route[fromIndex];
+        const toData = route[toIndex];
+
+        results.push({
+          busName: bus.name,
+          startTime: fromData.departure, // Leaving source
+          endTime: toData.arrival,       // Arriving dest
+          startStop: fromData.name,
+          endStop: toData.name,
+          stopsCount: toIndex - fromIndex,
+          stops: route.slice(fromIndex, toIndex + 1),
+          operatingDays: bus.operatingDays || ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri'] // Default to all except Sat
+        });
+      }
+    });
+
+    if (results.length === 0) {
+      busEls.busResults.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon">🚌</div>
+                <div class="empty-title">No Buses Found</div>
+                <div class="empty-subtitle">No direct bus found from ${from} to ${to}.</div>
+            </div>`;
+      return;
+    }
+
+    results.sort((a, b) => (a.startTime > b.startTime) ? 1 : -1);
+
+    results.forEach(res => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.style.padding = '16px';
+
+      // Calculate travel time in minutes
+      const calculateTravelTime = (startTime, endTime) => {
+        if (!startTime || !endTime) return '0';
+        const [startH, startM] = startTime.split(':').map(Number);
+        const [endH, endM] = endTime.split(':').map(Number);
+        const startMinutes = startH * 60 + startM;
+        const endMinutes = endH * 60 + endM;
+        let diff = endMinutes - startMinutes;
+        if (diff < 0) diff += 24 * 60; // Handle overnight travel
+        return diff;
+      };
+
+      const travelMinutes = calculateTravelTime(res.startTime, res.endTime);
+      const travelHours = Math.floor(travelMinutes / 60);
+      const travelMins = travelMinutes % 60;
+      const travelTimeText = travelHours > 0 ? `${travelHours}h ${travelMins}m` : `${travelMins}m`;
+
+      card.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <div style="font-weight:700; font-size:16px; color:var(--text);">${res.busName}</div>
+                <div style="font-size:12px; color:var(--primary); background:rgba(108,99,255,0.1); padding:4px 8px; border-radius:12px;">${res.stopsCount} Stops</div>
+            </div>
+            
+            <div style="font-size:11px; color:var(--accent); margin-bottom:12px; display:flex; align-items:center; gap:4px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+                Bus Schedule
+            </div>
+            
+            <div style="width:100%; height:1px; background:var(--outline); margin-bottom:16px;"></div>
+            
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                 <div style="text-align:left;">
+                    <div style="font-size:20px; font-weight:600; color:var(--text);">${formatBusTime(res.startTime)}</div>
+                    <div style="font-size:12px; color:var(--muted);">${res.startStop}</div>
+                 </div>
+                 
+                 <div style="flex:1; margin:0 16px; position:relative; height:2px; background:var(--outline);">
+                    <div style="position:absolute; left:0; top:-3px; width:8px; height:8px; border-radius:50%; background:var(--outline);"></div>
+                    <div style="position:absolute; right:0; top:-3px; width:8px; height:8px; border-radius:50%; background:var(--primary);"></div>
+                    <div style="position:absolute; top:-20px; width:100%; text-align:center; font-size:10px; color:var(--muted); white-space:nowrap;">
+                        Travel Time
+                    </div>
+                    <div style="position:absolute; top:6px; width:100%; text-align:center; font-size:11px; color:var(--muted); font-weight:600; white-space:nowrap;">
+                        ${travelTimeText}
+                    </div>
+                 </div>
+                 
+                 <div style="text-align:right;">
+                    <div style="font-size:20px; font-weight:600; color:var(--text);">${formatBusTime(res.endTime)}</div>
+                    <div style="font-size:12px; color:var(--muted);">${res.endStop}</div>
+                 </div>
+            </div>
+            
+            <button class="ghost-btn small" style="width:100%; text-align:center; font-size:12px;" onclick="window.toggleBusRoute(this)">
+                View Route Details ▼
+            </button>
+            
+            <div class="bus-route-details hidden" style="margin-top:12px; padding-top:12px; border-top:1px solid var(--outline);">
+                <div style="margin-bottom:16px;">
+                    <div style="font-size:12px; color:var(--muted); margin-bottom:8px; font-weight:500;">Runs On:</div>
+                    <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                        ${['Fri', 'Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu'].map(day => {
+        const isOperating = res.operatingDays && res.operatingDays.includes(day);
+        const color = isOperating ? 'var(--success)' : '#e74c3c';
+        const bgColor = isOperating ? 'rgba(76,175,80,0.1)' : 'rgba(231,76,60,0.1)';
+        const label = isOperating ? day : `${day} (off day)`;
+        return `<span style="padding:4px 10px; border-radius:6px; background:${bgColor}; color:${color}; font-size:11px; font-weight:600;">${label}</span>`;
+      }).join('')}
+                    </div>
+                </div>
+                
+                ${res.stops.map((s, i) => {
+        // Calculate duration from previous stop to current stop
+        let duration = '--';
+        if (i > 0) {
+          const prevStop = res.stops[i - 1];
+          const prevTime = prevStop.departure || prevStop.arrival;
+          const currentTime = s.arrival || s.departure;
+
+          if (prevTime && currentTime) {
+            const [h1, m1] = prevTime.split(':').map(Number);
+            const [h2, m2] = currentTime.split(':').map(Number);
+            const mins1 = h1 * 60 + m1;
+            const mins2 = h2 * 60 + m2;
+            let diff = mins2 - mins1;
+            if (diff < 0) diff += 24 * 60;
+            const hours = Math.floor(diff / 60);
+            const mins = diff % 60;
+            duration = hours > 0 ? `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}h` : `${String(mins).padStart(2, '0')}m`;
+          }
+        }
+
+        return `
+                    <div style="display:flex; gap:12px; margin-bottom:12px; align-items:flex-start;">
+                        <div style="position:relative; margin-top:4px;">
+                            <div style="width:10px; height:10px; border-radius:50%; background:${i === 0 || i === res.stops.length - 1 ? 'var(--primary)' : 'var(--accent)'}; border:2px solid var(--card);"></div>
+                            ${i !== res.stops.length - 1 ? `<div style="position:absolute; top:14px; left:4px; width:2px; height:24px; background:var(--outline);"></div>` : ''}
+                        </div>
+                        <div style="flex:1;">
+                            <div style="font-size:14px; font-weight:600; color:var(--text); margin-bottom:6px;">${s.name}</div>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:11px;">
+                                <div>
+                                    <span style="color:var(--muted);">Arrival:</span> 
+                                    <span style="color:var(--text); font-weight:500;">${s.arrival ? formatBusTime(s.arrival) : '--'}</span>
+                                </div>
+                                <div>
+                                    <span style="color:var(--muted);">Halt:</span> 
+                                    <span style="color:var(--text); font-weight:500;">${(() => {
+            if (s.arrival && s.departure) {
+              const [h1, m1] = s.arrival.split(':').map(Number);
+              const [h2, m2] = s.departure.split(':').map(Number);
+              const arrivalMins = h1 * 60 + m1;
+              const departMins = h2 * 60 + m2;
+              let haltMins = departMins - arrivalMins;
+              if (haltMins < 0) haltMins += 24 * 60;
+              return haltMins > 0 ? haltMins + 'm' : '---m';
+            }
+            return '---m';
+          })()}</span>
+                                </div>
+                                <div>
+                                    <span style="color:var(--muted);">Depart:</span> 
+                                    <span style="color:var(--text); font-weight:500;">${s.departure ? formatBusTime(s.departure) : '--'}</span>
+                                </div>
+                                <div>
+                                    <span style="color:var(--muted);">Duration:</span> 
+                                    <span style="color:var(--text); font-weight:500;">${duration}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `}).join('')}
+            </div>
+          `;
+      busEls.busResults.appendChild(card);
+    });
+  }
+
+  window.toggleBusRoute = function (btn) {
+    const details = btn.nextElementSibling;
+    if (details.classList.contains('hidden')) {
+      details.classList.remove('hidden');
+      btn.textContent = 'Hide Route Details ▲';
+    } else {
+      details.classList.add('hidden');
+      btn.textContent = 'View Route Details ▼';
+    }
+  };
+
+  function formatBusTime(timeStr) {
+    if (!timeStr) return '--:--';
+    const [h, m] = timeStr.split(':');
+    if (!h) return timeStr;
+    let hour = parseInt(h);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    hour = hour % 12;
+    hour = hour ? hour : 12;
+    return `${hour}:${m} ${ampm} `;
+  }
+
+
+  // Initialize Bus Logic
+  initBus();
+  // We can safely call this here as well, checks inside prevent issues
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initBusLottie);
+  } else {
+    initBusLottie();
+  }
+
   // Initialize on load
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initNoticeSection);
+    document.addEventListener('DOMContentLoaded', () => {
+      initNoticeSection();
+      initBus();
+      initBusLottie();
+      initRealTimeBusAnnouncement();
+    });
   } else {
     initNoticeSection();
+    initBus();
+    initBusLottie();
+    initRealTimeBusAnnouncement();
   }
+
+  // ========== BUS ANNOUNCEMENT LISTENER ==========
+  function initRealTimeBusAnnouncement() {
+    // Safety check for DB and Elements
+    if (!db) {
+      console.warn("Bus Announcement: DB not initialized");
+      return;
+    }
+
+    // Safety check for elements - if not in els, try to get them fresh
+    const busAnnouncement = document.getElementById('busAnnouncement');
+    const busAnnouncementMessage = document.getElementById('busAnnouncementMessage');
+
+    if (!busAnnouncement || !busAnnouncementMessage) {
+      console.warn("Bus Announcement: Elements not found");
+      return;
+    }
+
+    const ref = db.ref('transport/announcement');
+    ref.on('value', (snap) => {
+      const data = snap.val();
+      if (data && data.enabled && data.message) {
+        // Format message: Find [Text] and make it Red (#FF4C4C - brighter red for dark mode) + Bold
+        const formattedMessage = data.message.replace(
+          /\[(.*?)\]/g,
+          '<span style="color: #FF4C4C; font-weight: 700;">$1</span>'
+        );
+
+        busAnnouncementMessage.innerHTML = formattedMessage;
+        busAnnouncement.classList.remove('hidden');
+        busAnnouncement.style.setProperty('display', 'flex', 'important'); // Force override with important
+      } else {
+        busAnnouncement.classList.add('hidden');
+        busAnnouncement.style.setProperty('display', 'none', 'important'); // Force hide override
+      }
+    });
+  }
+
+  // ========== PRIVACY NOTICE LISTENER ==========
+  function initPrivacyNoticeListener() {
+    // Safety check for DB
+    if (!db) { return; }
+
+    // Elements (inside Privacy Page)
+    const privacyNotice = document.getElementById('privacyNotice');
+    const privacyNoticeMessage = document.getElementById('privacyNoticeMessage');
+
+    if (!privacyNotice || !privacyNoticeMessage) { return; }
+
+    const ref = db.ref('settings/privacyNotice');
+    ref.on('value', (snap) => {
+      const data = snap.val();
+      if (data && data.enabled && data.message) {
+        // Format message: Find [Text] and make it Red+Bold
+        const formattedMessage = data.message.replace(
+          /\[(.*?)\]/g,
+          '<span style="color: #FF4C4C; font-weight: 700;">$1</span>'
+        );
+
+        privacyNoticeMessage.innerHTML = formattedMessage;
+        privacyNotice.classList.remove('hidden');
+        privacyNotice.style.setProperty('display', 'flex', 'important');
+      } else {
+        privacyNotice.classList.add('hidden');
+        privacyNotice.style.setProperty('display', 'none', 'important');
+      }
+    });
+  }
+
+  // Force initialization after a short delay to ensure DOM is ready
+  setTimeout(() => {
+    initRealTimeBusAnnouncement();
+    initPrivacyNoticeListener();
+  }, 1000);
+
 })();

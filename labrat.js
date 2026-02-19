@@ -1,6 +1,10 @@
+import './js/config.js';
+
 document.addEventListener('DOMContentLoaded', function () {
     let lastPdfBlobUrl = null;
     let lastPdfFile = null;
+
+
 
     // ========== Custom Dropdown Functions (from routine page) ==========
 
@@ -331,35 +335,67 @@ document.addEventListener('DOMContentLoaded', function () {
     document.head.appendChild(style);
 
 
-    // Download PDF when button is clicked
+    // ========== Download PDF (with Progress Animation) ==========
     const downloadBtn = document.getElementById('downloadBtn');
     if (downloadBtn) {
         downloadBtn.addEventListener('click', function () {
             if (validateForm()) {
-                // Feedback
-                const originalText = downloadBtn.innerText;
+                const originalText = downloadBtn.innerHTML; // Save original state
+
+                // Add downloading class
+                downloadBtn.classList.add('downloading');
                 downloadBtn.disabled = true;
-                downloadBtn.innerHTML = `
-                    <svg class="spinner" viewBox="0 0 50 50" style="width:16px;height:16px;animation:spin 1s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px;">
-                        <circle cx="25" cy="25" r="20" fill="none" stroke="currentColor" stroke-width="5"></circle>
-                    </svg>
-                    Downloading...
-                `;
 
-                // Add spin keyframes if not exists
-                if (!document.getElementById('spinStyle')) {
-                    const s = document.createElement('style');
-                    s.id = 'spinStyle';
-                    s.innerHTML = `@keyframes spin { 100% { transform: rotate(360deg); } }`;
-                    document.head.appendChild(s);
-                }
+                // Simulate Progress Values (0 to 90%)
+                let progress = 0;
 
-                // Delay slightly to allow UI update
+                // Initial Display
+                const updateBtnContent = (percent, text = "Downloading...") => {
+                    downloadBtn.style.setProperty('--progress', `${percent}%`);
+                    downloadBtn.innerHTML = `
+                        <div class="primary-btn-content">
+                            <svg class="spinner" viewBox="0 0 50 50" style="width:18px;height:18px;animation:spin 1s linear infinite;">
+                                <circle cx="25" cy="25" r="20" fill="none" stroke="currentColor" stroke-width="5"></circle>
+                            </svg>
+                            <span style="font-weight:600; font-family:'Courier New', monospace; letter-spacing:0.5px;">${text} ${percent}%</span>
+                        </div>
+                    `;
+                };
+
+                updateBtnContent(0);
+
+                // Start smooth progress simulation
+                const interval = setInterval(() => {
+                    // Slow down as we approach 90%
+                    const remaining = 90 - progress;
+                    const increment = Math.max(1, Math.floor(Math.random() * (remaining / 5)));
+                    progress = Math.min(90, progress + increment);
+                    updateBtnContent(progress);
+                }, 150);
+
+                // Delay slightly to allow UI redraw
                 setTimeout(() => {
-                    downloadPDF().finally(() => {
-                        // Reset button (though we navigate away to success page usually)
+                    downloadPDF().then(() => {
+                        clearInterval(interval);
+                        // Jump to 100%
+                        updateBtnContent(100, "Done!");
+
+                        // Brief pause to show 100% before transition (though form hides instantly)
+                        setTimeout(() => {
+                            // Reset for next time (in background since form is hidden)
+                            downloadBtn.classList.remove('downloading');
+                            downloadBtn.style.removeProperty('--progress');
+                            downloadBtn.innerHTML = originalText;
+                            downloadBtn.disabled = false;
+                        }, 500);
+
+                    }).catch(err => {
+                        console.error(err);
+                        clearInterval(interval);
+                        downloadBtn.classList.remove('downloading');
+                        downloadBtn.innerHTML = originalText; // Revert on error
                         downloadBtn.disabled = false;
-                        downloadBtn.innerText = originalText;
+                        alert('Error downloading PDF');
                     });
                 }, 100);
             }
@@ -558,8 +594,20 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Show/hide Teacher 2 block in preview
         const teacher2PreviewBlock = document.getElementById('teacher2PreviewBlock');
+        const departmentTitle = document.getElementById('previewDepartmentTitle');
+
         if (teacher2PreviewBlock && teacher2Enable) {
-            teacher2PreviewBlock.style.visibility = teacher2Enable.checked ? 'visible' : 'hidden';
+            const isT2Enabled = teacher2Enable.checked;
+
+            // Toggle Display (removes from flow vs just hiding)
+            teacher2PreviewBlock.style.display = isT2Enabled ? 'flex' : 'none';
+
+            // Adjust Department Title spacing
+            if (departmentTitle) {
+                // If T2 is ON: Standard margin (15px)
+                // If T2 is OFF: Tighter margin (8px) to reduce whitespace
+                departmentTitle.style.marginTop = isT2Enabled ? '15px' : '12px';
+            }
         }
 
         setText('previewSubmissionDate', submissionDate);
@@ -567,6 +615,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Department specific logic
         const depEl = document.getElementById('departmentSelect');
+        // Safely check if elements exist before accessing propertys
         const department = depEl ? depEl.value : 'EEE';
         const previewElement = document.getElementById('preview');
         const previewLeftLogo = document.getElementById('previewLeftLogo');
@@ -603,7 +652,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     // Higher scale for better resolution (MS Word quality)
                     html2canvas(previewElement, {
-                        scale: 3,
+                        scale: 4, // Increased from 3 to 4 for sharper text
                         useCORS: true,
                         logging: false,
                         backgroundColor: '#ffffff',
@@ -659,15 +708,41 @@ document.addEventListener('DOMContentLoaded', function () {
                             }
                         }
                     }).then(canvas => {
-                        // Convert to PNG for best quality
-                        const imgData = canvas.toDataURL("image/png");
+                        // Convert to JPEG with 0.8 quality (Great balance of size vs quality)
+                        // PNG at scale 4 is huge (MBs). JPEG at scale 4 is crisp and small (~150kb).
+                        const imgData = canvas.toDataURL("image/jpeg", 0.8);
 
-                        const pdf = new jsPDF('p', 'mm', 'a4');
+                        // Enable compression
+                        const pdf = new jsPDF({
+                            orientation: 'p',
+                            unit: 'mm',
+                            format: 'a4',
+                            compress: true
+                        });
+
                         const imgWidth = 210; // A4 width in mm
                         const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-                        // Add image to PDF with high quality
-                        pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight, undefined, 'SLOW');
+                        // Add image to PDF
+                        pdf.addImage(imgData, "JPEG", 0, 0, imgWidth, imgHeight, undefined, 'FAST');
+
+                        // Generate Filename based on Experiment Name
+                        const expNameInput = document.getElementById('experimentName');
+                        let fileName = 'LabRat.pdf';
+
+                        if (expNameInput && expNameInput.value.trim()) {
+                            // Sanitize: keep only letters, numbers, spaces
+                            let safeName = expNameInput.value.trim().replace(/[^a-zA-Z0-9 ]/g, '');
+                            // Replace spaces with underscores
+                            safeName = safeName.replace(/\s+/g, '_');
+                            // Truncate to reasonable length (e.g. 25 chars)
+                            if (safeName.length > 25) {
+                                safeName = safeName.substring(0, 25);
+                            }
+                            if (safeName) {
+                                fileName = `LabRat_${safeName}.pdf`;
+                            }
+                        }
 
                         // Get blob and blob URL for open/share
                         const pdfBlob = pdf.output('blob');
@@ -675,10 +750,22 @@ document.addEventListener('DOMContentLoaded', function () {
                             URL.revokeObjectURL(lastPdfBlobUrl);
                         }
                         lastPdfBlobUrl = URL.createObjectURL(pdfBlob);
-                        lastPdfFile = new File([pdfBlob], 'lab_report.pdf', { type: 'application/pdf' });
+                        lastPdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
 
-                        // Save PDF to device
-                        pdf.save('lab_report.pdf');
+                        // Check if running inside Flutter App (via JavascriptChannel)
+                        // Flutter App should inject a channel named 'DownloadChannel'
+                        if (window.DownloadChannel) {
+                            const pdfBase64 = pdf.output('datauristring');
+                            // Send base64 data to Flutter
+                            window.DownloadChannel.postMessage(JSON.stringify({
+                                type: 'pdf_download',
+                                data: pdfBase64,
+                                filename: fileName
+                            }));
+                        } else {
+                            // Standard Browser Download
+                            pdf.save(fileName);
+                        }
 
                         // Show success page
                         setTimeout(() => {

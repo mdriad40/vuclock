@@ -18,7 +18,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
-        lab_report: resolve(__dirname, 'lab_report.html'),
+        labrat: resolve(__dirname, 'labrat.html'),
       },
     },
     minify: 'terser',

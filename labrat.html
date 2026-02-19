@@ -13,7 +13,7 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Tinos:wght@400;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-    <link rel="stylesheet" href="./lab_style.css">
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js" crossorigin="anonymous"
         referrerpolicy="no-referrer"></script>
     <style>
@@ -62,9 +62,13 @@
             margin-top: 114px !important;
         }
     </style>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="labrat.css">
+    <script type="module" src="labrat.js"></script>
 </head>
 
 <body>
+
     <div class="container">
         <header class="app-header">
             <h1 class="app-title">VU Lab Rat</h1>
@@ -78,15 +82,18 @@
                 <div class="addArea" style="justify-content: space-between; margin-bottom: 20px;">
                     <span class="toggle-label" style="font-weight: 500; font-size: 14px; color: var(--text);">Fill
                         details for:</span>
-                    <div class="toggle-wrapper">
+                    <div class="toggle-wrapper" style="display: flex; align-items: center;">
                         <span id="labelOther"
-                            style="font-size: 13px; margin-right: 12px; color: var(--muted);">Another</span>
-                        <label class="switch">
-                            <input type="checkbox" id="autoFillToggle" checked>
-                            <span class="slider round"></span>
-                        </label>
+                            style="font-size: 13px; margin-right: 12px; color: var(--muted); transition: color 0.3s;">Another</span>
+
+                        <div style="position: relative; display: inline-block; width: 48px; height: 24px;">
+                            <input type="checkbox" id="autoFillToggle" checked
+                                style="opacity: 0; width: 0; height: 0; position: absolute; pointer-events: none;">
+                            <label for="autoFillToggle" class="teacher-like-toggle"></label>
+                        </div>
+
                         <span id="labelMe"
-                            style="font-size: 13px; margin-left: 12px; font-weight: 600; color: var(--accent);">Me</span>
+                            style="font-size: 13px; margin-left: 12px; font-weight: 600; color: var(--accent); transition: color 0.3s;">Me</span>
                     </div>
                 </div>
                 <!-- End functionality -->
@@ -116,7 +123,7 @@
 
                 <div class="form-group">
                     <label for="experimentName">Name of Experiment</label>
-                    <input type="text" id="experimentName" placeholder="e.g., Verification of Ohm's Law">
+                    <textarea id="experimentName" placeholder="e.g., Verification of Ohm's Law" rows="1"></textarea>
                 </div>
 
                 <h3>Submitted By</h3>
@@ -197,31 +204,10 @@
                 <div class="success-card card">
                     <div id="successLottie" class="success-lottie"></div>
                     <h2 class="success-title">PDF Downloaded Successfully</h2>
-                    <p class="success-message">Your VU lab report front page is ready. You can open it now, share with
-                        others, or create another one.</p>
+                    <p class="success-message">Your VU lab report front page is ready. You can open it, share with
+                        others from your download folder, or create another one.</p>
                     <div class="success-actions">
-                        <button id="openPdfBtn" class="action-btn primary">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                <polyline points="14 2 14 8 20 8"></polyline>
-                                <line x1="16" y1="13" x2="8" y2="13"></line>
-                                <line x1="16" y1="17" x2="8" y2="17"></line>
-                                <polyline points="10 9 9 9 8 9"></polyline>
-                            </svg>
-                            Open PDF
-                        </button>
-                        <button id="sharePdfBtn" class="action-btn secondary">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <circle cx="18" cy="5" r="3"></circle>
-                                <circle cx="6" cy="12" r="3"></circle>
-                                <circle cx="18" cy="19" r="3"></circle>
-                                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-                                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-                            </svg>
-                            Share PDF
-                        </button>
+
                         <button id="newReportBtn" class="action-btn ghost">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2">
@@ -237,7 +223,7 @@
 
         <footer class="app-footer">
             <div class="app-footer-inner">
-                <span class="app-footer-title">VU Clock - You Quick Assistant</span>
+                <span class="app-footer-title">VU Clock - Your Quick Assistant</span>
                 <span class="app-footer-subtitle">Lab Rat - Lab Report Front Page Assistant</span>
             </div>
         </footer>
@@ -320,7 +306,8 @@
                         </div>
                     </div>
 
-                    <div class="submitted-department" style="margin-top: 15px;">Department of Electrical and Electronic
+                    <div id="previewDepartmentTitle" class="submitted-department" style="margin-top: 15px;">Department
+                        of Electrical and Electronic
                         Engineering, Varendra University</div>
                 </td>
             </tr>
@@ -370,11 +357,10 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
-    <!-- App Configuration (Initializes Firebase) -->
-    <script type="module" src="js/config.js"></script>
+
 
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-    <script type="module" src="lab_script.js"></script>
+
 </body>
 
 </html>

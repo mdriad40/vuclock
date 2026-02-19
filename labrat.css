@@ -35,14 +35,18 @@ html,
 body {
     height: 100%;
     overflow-x: hidden;
+    overscroll-behavior-y: none;
+    /* Prevent bounce */
 }
 
 body {
     background: var(--bg);
     color: var(--text);
     line-height: 1.6;
-    padding: 20px;
-    min-height: 100vh;
+    padding: 0;
+    /* Reduced from 16px */
+    min-height: 100%;
+    /* Changed from 100vh */
     font-family: "Inter", "Poppins", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
     scrollbar-width: none;
     -ms-overflow-style: none;
@@ -57,12 +61,13 @@ body::-webkit-scrollbar {
 }
 
 .container {
-    max-width: 960px;
+    max-width: 100%;
     margin: 0 auto;
     display: flex;
     flex-direction: column;
-    gap: 20px;
-    padding-bottom: 40px;
+    gap: 0;
+    padding-bottom: 70px;
+    /* Reduced from 40px */
 }
 
 /* Header Styles */
@@ -183,7 +188,7 @@ body::-webkit-scrollbar {
     flex: 1;
     min-width: 100%;
     max-width: 100%;
-    padding: 24px;
+    padding: 19px;
     position: relative;
     overflow: visible;
 }
@@ -239,6 +244,7 @@ label {
 }
 
 input,
+textarea,
 select:not(#departmentSelect) {
     width: 100%;
     padding: 12px;
@@ -253,16 +259,24 @@ select:not(#departmentSelect) {
 }
 
 input::placeholder,
+textarea::placeholder,
 select:not(#departmentSelect)::placeholder {
     color: var(--muted);
     opacity: 0.7;
 }
 
 input:focus,
-select:not(#departmentSelect):focus {
+textarea:focus,
+select:not(#departmentSelect)::focus {
     border: 1.5px solid var(--accent);
     box-shadow: 0 0 0 4px rgba(158, 140, 255, 0.2);
     background: #1b1b1b;
+}
+
+textarea {
+    resize: vertical;
+    min-height: 60px;
+    font-family: "Inter", sans-serif;
 }
 
 /* Department Select - Match routine page semester dropdown style */
@@ -604,6 +618,14 @@ select:not(#departmentSelect):focus {
     opacity: 0;
     width: 0;
     height: 0;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+/* Ensure no unwanted content content */
+.switch .slider:before,
+.switch .slider:after {
+    content: "";
 }
 
 /* Base Slider (Track) - Matching teacher2Enable::before */
@@ -669,6 +691,72 @@ input:checked+.slider:before {
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
+
+/* --- Robust Toggle Switch (Replicating Teacher 2 Button) --- */
+.teacher-like-toggle {
+    position: relative;
+    display: inline-block;
+    width: 48px;
+    height: 24px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Track */
+.teacher-like-toggle::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 48px;
+    height: 24px;
+    background: #2a2a2a;
+    border: 1.5px solid var(--outline);
+    border-radius: 24px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+    box-sizing: border-box;
+}
+
+/* Knob */
+.teacher-like-toggle::after {
+    content: '';
+    position: absolute;
+    left: 3px;
+    top: 3px !important;
+    /* Force explicit pixel positioning */
+    width: 18px;
+    height: 18px;
+    background: linear-gradient(135deg, #e0e0e0 0%, #b3b3b3 100%);
+    border-radius: 50%;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.2);
+    box-sizing: border-box;
+}
+
+/* Hover Effects */
+.teacher-like-toggle:hover::before {
+    border-color: var(--accent);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3), 0 0 0 3px rgba(158, 140, 255, 0.15);
+}
+
+.teacher-like-toggle:hover::after {
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Checked State - Targeted via adjacent sibling */
+input:checked+.teacher-like-toggle::before {
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    border-color: var(--accent);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 12px rgba(108, 99, 255, 0.3);
+}
+
+input:checked+.teacher-like-toggle::after {
+    left: 27px;
+    /* 48(width) - 18(knob) - 3(gap) = 27 */
+    background: linear-gradient(135deg, #ffffff 0%, #f0f0f0 100%);
+    box-shadow: 0 2px 8px rgba(108, 99, 255, 0.4), 0 1px 3px rgba(0, 0, 0, 0.3);
+}
 
 .two-column {
     display: grid;
@@ -903,6 +991,17 @@ button {
 /* Success Page Styles */
 .success-page {
     flex: 1;
+    min-width: 100%;
+    max-width: 100%;
+    display: flex;
+    /* Ensure centering if needed */
+    justify-content: center;
+    /* Center the card inside if not full width */
+}
+
+/* Ensure the card inside success page takes full width */
+.success-page .success-card {
+    width: 100%;
 }
 
 .success-card {
@@ -1342,7 +1441,7 @@ button {
 /* Mobile Responsive */
 @media (max-width: 768px) {
     body {
-        padding: 12px;
+        padding: 0;
     }
 
     .container {
@@ -1401,7 +1500,7 @@ button {
 
 @media (max-width: 480px) {
     body {
-        padding: 10px;
+        padding: 0;
     }
 
     .app-header {
@@ -1473,4 +1572,164 @@ button {
 
 .cse-template .signature-line {
     margin-top: 210px !important;
+}
+
+/* Downloading Animation & Progress */
+.primary-btn {
+    position: relative;
+    overflow: hidden;
+    /* Ensure progress bar stays inside */
+    transition: all 0.3s ease;
+}
+
+.primary-btn.downloading {
+    cursor: wait;
+    pointer-events: none;
+    background: #4a42b9 !important;
+    /* Slightly darker base for contrast */
+}
+
+/* Progress Bar Overlay */
+.primary-btn.downloading::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: var(--progress, 0%);
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.3));
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+    transition: width 0.1s linear;
+    z-index: 0;
+}
+
+/* Content Layer */
+.primary-btn-content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    font-family: inherit;
+}
+
+
+/* App Preloader Styles - Clean Minimalist Dark Theme */
+.app-preloader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    background: #121212;
+    /* Matches var(--bg) */
+    z-index: 999999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    transition: opacity 0.5s ease, visibility 0.5s step-end;
+}
+
+.app-preloader.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.app-preloader-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    z-index: 10;
+}
+
+/* Modern Bouncing Dots Loader */
+.loader-dots {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.loader-dots span {
+    width: 16px;
+    height: 16px;
+    background: #6c63ff;
+    /* Primary Color */
+    border-radius: 50%;
+    animation: bounce 1.4s infinite ease-in-out both;
+    box-shadow: 0 0 10px rgba(108, 99, 255, 0.4);
+}
+
+.loader-dots span:nth-child(1) {
+    animation-delay: -0.32s;
+}
+
+.loader-dots span:nth-child(2) {
+    animation-delay: -0.16s;
+}
+
+@keyframes bounce {
+
+    0%,
+    80%,
+    100% {
+        transform: scale(0);
+        opacity: 0.5;
+    }
+
+    40% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Typography */
+.preloader-title {
+    font-family: 'Poppins', sans-serif;
+    font-size: 20px;
+    font-weight: 600;
+    color: #e0e0e0;
+    margin: 0;
+    letter-spacing: 0.5px;
+}
+
+.preloader-subtitle {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: #b3b3b3;
+    margin-top: -8px;
+    font-weight: 400;
+}
+
+/* Minimalist Progress Bar */
+.loading-progress-wrapper {
+    width: 160px;
+    height: 4px;
+    background: #2a2a2a;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 12px;
+    position: relative;
+}
+
+.loading-progress-bar {
+    height: 100%;
+    width: 0%;
+    background: #6c63ff;
+    border-radius: 4px;
+    transition: width 0.2s ease-out;
+    box-shadow: 0 0 8px rgba(108, 99, 255, 0.4);
+}
+
+.loading-percent-text {
+    font-family: 'Inter', sans-serif;
+    font-size: 11px;
+    color: #6c63ff;
+    font-weight: 600;
+    margin-top: 6px;
+    opacity: 0.9;
 }
