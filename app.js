@@ -1134,11 +1134,17 @@
       let selectedMinute = 0;
       let selectedAmPm = 'AM';
 
+      const updateSchedioTimeInput = () => {
+        const hStr = String(selectedHour).padStart(2, '0');
+        const mStr = String(selectedMinute).padStart(2, '0');
+        timeInput.value = `${hStr}:${mStr} ${selectedAmPm}`;
+      };
+
       // Generate options
       const renderTimeColumn = (container, range, isHour) => {
         container.innerHTML = '';
         // Padding
-        container.appendChild(document.createElement('div')).style.height = '50px';
+        container.appendChild(document.createElement('div')).style.height = '60px';
 
         range.forEach(val => {
           const el = document.createElement('div');
@@ -1156,11 +1162,12 @@
             el.classList.add('selected');
             if (isHour) selectedHour = val;
             else selectedMinute = val;
+            updateSchedioTimeInput(); // Live update
           };
 
           container.appendChild(el);
         });
-        container.appendChild(document.createElement('div')).style.height = '50px';
+        container.appendChild(document.createElement('div')).style.height = '60px';
       };
 
       const hours = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -1173,6 +1180,7 @@
           timePicker.querySelectorAll('.timepicker-item-ampm').forEach(i => i.classList.remove('selected'));
           item.classList.add('selected');
           selectedAmPm = item.dataset.value;
+          updateSchedioTimeInput(); // Live update
         }
       });
 
@@ -1193,8 +1201,10 @@
             if (parts.length === 2) {
               selectedAmPm = parts[1];
               const t = parts[0].split(':');
-              selectedHour = parseInt(t[0]);
-              selectedMinute = parseInt(t[1]);
+              const hVal = parseInt(t[0]);
+              const mVal = parseInt(t[1]);
+              if (!isNaN(hVal)) selectedHour = hVal;
+              if (!isNaN(mVal)) selectedMinute = mVal;
             }
           } else {
             const now = new Date();
@@ -1203,12 +1213,14 @@
             selectedAmPm = h >= 12 ? 'PM' : 'AM';
             h = h % 12;
             selectedHour = h ? h : 12;
+            // Immediate update for "Live" feel on first open
+            updateSchedioTimeInput();
           }
 
           renderTimeColumn(timeHoursObj, hours, true);
           renderTimeColumn(timeMinutesObj, minutes, false);
 
-          // Set AMPM
+          // Set AMPM UI
           timePicker.querySelectorAll('.timepicker-item-ampm').forEach(i => {
             if (i.dataset.value === selectedAmPm) i.classList.add('selected');
             else i.classList.remove('selected');
@@ -1217,6 +1229,15 @@
           timePicker.classList.remove('hidden');
           void timePicker.offsetWidth;
           timePicker.classList.add('showing');
+
+          // Scroll to selected
+          setTimeout(() => {
+            const hEl = Array.from(timeHoursObj.children).find(c => parseInt(c.dataset.value) === selectedHour);
+            if (hEl) timeHoursObj.scrollTo({ top: hEl.offsetTop - timeHoursObj.offsetHeight / 2 + hEl.offsetHeight / 2, behavior: 'smooth' });
+
+            const mEl = Array.from(timeMinutesObj.children).find(c => parseInt(c.dataset.value) === selectedMinute);
+            if (mEl) timeMinutesObj.scrollTo({ top: mEl.offsetTop - timeMinutesObj.offsetHeight / 2 + mEl.offsetHeight / 2, behavior: 'smooth' });
+          }, 50);
 
           // Positioning
           const rect = timeWrapper.getBoundingClientRect();
@@ -1242,9 +1263,7 @@
 
       timeSetBtn.onclick = (e) => {
         e.stopPropagation();
-        const hStr = String(selectedHour).padStart(2, '0');
-        const mStr = String(selectedMinute).padStart(2, '0');
-        timeInput.value = `${hStr}:${mStr} ${selectedAmPm}`;
+        updateSchedioTimeInput(); // Ensure value is set
         timePicker.classList.remove('showing');
         setTimeout(() => timePicker.classList.add('hidden'), 200);
       };
